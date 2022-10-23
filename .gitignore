@@ -8,4 +8,7 @@
 !Controller.h
 !Scheduler.h
 
+# Add in the cache.cpp from piazza as a commented out example
+!Cache_example.cpp
+
 .vscode
