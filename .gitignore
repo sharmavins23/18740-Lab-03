@@ -8,6 +8,9 @@
 !Controller.h
 !Scheduler.h
 
+# Add in the reports folder for turn-in
+!reports/
+
 # Add in the cache.cpp from piazza as a commented out example
 !Cache_example.cpp
 
