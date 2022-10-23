@@ -14,4 +14,7 @@
 # Add in the cache.cpp from piazza as a commented out example
 !Cache_example.cpp
 
+# Add the benchmark running script
+!runbench
+
 .vscode

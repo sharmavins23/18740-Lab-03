@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ramulator/ramulator configs/baseline.cfg --mode=cpu --stats output/gcc.stats traces/gcc.trace
+ramulator/ramulator configs/baseline.cfg --mode=cpu --stats output/mcf.stats traces/mcf.trace
+ramulator/ramulator configs/baseline.cfg --mode=cpu --stats output/milc.stats traces/milc.trace
+ramulator/ramulator configs/baseline.cfg --mode=cpu --stats output/omnetpp.stats traces/omnetpp.trace
+
+ramulator/ramulator configs/baseline.cfg --mode=cpu --stats output/baseline_shared.stats traces/gcc.trace traces/mcf.trace traces/milc.trace traces/omnetpp.trace
