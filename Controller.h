@@ -68,6 +68,11 @@ namespace ramulator {
         long clk = 0;
         DRAM<T>* channel;
 
+        int lastCoreID = 0;    // Used to track the core ID of the last request
+        long numRequests = 0;  // Number of requests served from an application
+        // Used to track the blacklist status of the cores (we only have 4)
+        bool bStatus[4] = {false, false, false, false};
+
         Scheduler<T>* scheduler;  // determines the highest priority request
                                   // whose commands will be issued
         RowPolicy<T>* rowpolicy;  // determines the row-policy (e.g., closed-row
@@ -416,8 +421,38 @@ namespace ramulator {
                 // determine how many requests a core has issued You may need to
                 // reset it somewhere else
 
-                req->is_first_command = false;
+                // * Blacklisting algorithm for BLISS
+
+                // Every 10,000 cycles, the blacklist should be cleared
+                if (clk % 10000 == 0) {
+                    for (int i = 0; i < 4; i++) {
+                        bStatus[i] = false;
+                    }
+                }
+
+                // Get the current ID
                 int coreid = req->coreid;
+
+                if (coreid == lastCoreID) {
+                    // If the core ID is the same as the last one, increment
+                    numRequests++;
+                } else {
+                    // If the core ID is different, reset the counter
+                    numRequests = 0;
+                }
+
+                // Check against the threshold
+                int threshold = 4;  // Noted in page 8, first bullet at bottom
+                if (numRequests >= threshold) {
+                    bStatus[coreid] = true;
+                    numRequests = 0;
+                }
+
+                // Update the last core ID
+                lastCoreID = coreid;
+
+                req->is_first_command = false;
+                // int coreid = req->coreid;
                 if (req->type == Request::Type::READ ||
                     req->type == Request::Type::WRITE) {
                     channel->update_serving_requests(req->addr_vec.data(), 1,
