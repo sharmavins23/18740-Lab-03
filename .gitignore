@@ -9,7 +9,7 @@
 !Scheduler.h
 
 # Add in the reports folder for turn-in
-!reports/
+!reports/*
 
 # Add in the cache.cpp from piazza as a commented out example
 !Cache_example.cpp
