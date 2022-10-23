@@ -1,0 +1,11 @@
+*
+!*/
+
+# track only Lab 3 student source files
+!.gitignore
+!Cache.h
+!Cache.cpp
+!Controller.h
+!Scheduler.h
+
+.vscode
