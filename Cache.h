@@ -206,14 +206,12 @@ namespace ramulator {
                     coreLineTracker[coreID].coreLine0Addr = addr;
                     cache_lines.insert(
                         make_pair(get_index(addr), std::list<Line>()));
-                    )
                 } else if (coreLineTracker[coreID].coreLine1 == false) {
                     // Make a new coreLine1
                     coreLineTracker[coreID].coreLine1 = true;
                     coreLineTracker[coreID].coreLine1Addr = addr;
                     cache_lines.insert(
                         make_pair(get_index(addr), std::list<Line>()));
-                    )
                 }
             }
             // Here, we've found a line
