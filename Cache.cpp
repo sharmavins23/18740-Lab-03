@@ -172,7 +172,7 @@ namespace ramulator {
                     return false;
                 }
 
-                auto newline = allocate_line(lines, req.addr);
+                auto newline = allocate_line_wp(lines, req.addr, req.coreid);
                 if (newline == lines.end()) {
                     return false;
                 }
