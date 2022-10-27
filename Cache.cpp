@@ -110,7 +110,8 @@ namespace ramulator {
                 cache_read_access++;
             }
             // If there isn't a set, create it.
-            auto& lines = get_lines(req.addr);
+            // * Only create if the current core has space in the set
+            auto& lines = get_lines_waypart(req.addr, req.coreid);
             std::list<Line>::iterator line;
 
             if (is_hit(lines, req.addr, &line)) {
