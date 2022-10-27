@@ -16,5 +16,6 @@
 
 # Add the benchmark running script
 !runbench
+!testbench
 
 .vscode
