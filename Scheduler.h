@@ -266,8 +266,8 @@ namespace ramulator {
                 // 18-740: ADD CODE BELOW THIS LINE
 
                 // Get the number of requests
-                long req1Count = this->ctrl->reqCount[req1->coreid];
-                long req2Count = this->ctrl->reqCount[req2->coreid];
+                long req1Count = this->ctrl->numRequestsPerCore[req1->coreid];
+                long req2Count = this->ctrl->numRequestsPerCore[req2->coreid];
 
                 // Prioritize the list with the least number of requests
                 if (req1Count < req2Count) {
