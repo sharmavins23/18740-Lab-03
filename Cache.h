@@ -100,24 +100,25 @@ namespace ramulator {
 
         // Evict the cache line from higher level to this level.
         // Pass the dirty bit and update LRU queue.
-        void evictline(long addr, bool dirty);
+        void evictline(long addr, bool dirty, int coreid);
 
         // Invalidate the line from this level to higher levels
         // The return value is a pair. The first element is invalidation
         // latency, and the second is wether the value has new version
         // in higher level and this level.
-        std::pair<long, bool> invalidate(long addr);
+        std::pair<long, bool> invalidate(long addr, int coreid);
 
         // Evict the victim from current set of lines.
         // First do invalidation, then call evictline(L1 or L2) or send
         // a write request to memory(L3) when dirty bit is on.
-        void evict(std::list<Line>* lines, std::list<Line>::iterator victim);
+        void evict(std::list<Line>* lines, std::list<Line>::iterator victim,
+                   int coreid);
 
         // First test whether need eviction, if so, do eviction by
         // calling evict function. Then allocate a new line and return
         // the iterator points to it.
         std::list<Line>::iterator allocate_line(std::list<Line>& lines,
-                                                long addr);
+                                                Request req);
 
         // Check whether the set to hold addr has space or eviction is
         // needed.

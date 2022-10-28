@@ -46,16 +46,7 @@ namespace ramulator {
         assert(size >= block_size);
 
         // Initialize cache configuration
-        if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
-            // * For our configuration, due to the LRU structure of the given
-            //   code, we are cutting down the associativity PER CORE to 2, and
-            //   subsequently increasing the cache multiples of "ways" to 4.
-            //   This gives us two ways per core, and 4 cores per cache, to a
-            //   total of 8 groups.
-            block_num = size / (block_size * 2);
-        } else {
-            block_num = size / (block_size * assoc);
-        }
+        block_num = size / (block_size * assoc);
         index_mask = block_num - 1;
         index_offset = calc_log2(block_size);
         tag_offset = calc_log2(block_num) + index_offset;
@@ -182,7 +173,7 @@ namespace ramulator {
                     return false;
                 }
 
-                auto newline = allocate_line(lines, req.addr);
+                auto newline = allocate_line(lines, req);
                 if (newline == lines.end()) {
                     return false;
                 }
@@ -279,7 +270,7 @@ namespace ramulator {
                     return false;
                 }
 
-                auto newline = allocate_line(lines, req.addr);
+                auto newline = allocate_line(lines, req);
                 if (newline == lines.end()) {
                     return false;
                 }
@@ -376,7 +367,7 @@ namespace ramulator {
                     return false;
                 }
 
-                auto newline = allocate_line(lines, req.addr);
+                auto newline = allocate_line(lines, req);
                 if (newline == lines.end()) {
                     return false;
                 }
@@ -400,11 +391,12 @@ namespace ramulator {
         }
     }
 
-    void Cache::evictline(long addr, bool dirty) {
+    void Cache::evictline(long addr, bool dirty, int coreid) {
         // 18-740 QoS: Way Partitioning
         if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
-            auto it = cache_lines.find(get_index(addr));
-            assert(it != cache_lines.end());  // check inclusive cache
+            auto it = cache_lines_wp[coreid].find(get_index(addr));
+            assert(it !=
+                   cache_lines_wp[coreid].end());  // check inclusive cache
             auto& lines = it->second;
             auto line = find_if(
                 lines.begin(), lines.end(),
@@ -451,13 +443,13 @@ namespace ramulator {
         }
     }
 
-    std::pair<long, bool> Cache::invalidate(long addr) {
+    std::pair<long, bool> Cache::invalidate(long addr, int coreid) {
         // 18-740 QoS: Way Partitioning
         if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
             long delay = latency_each[int(level)];
             bool dirty = false;
 
-            auto& lines = get_lines(addr);
+            auto& lines = get_lines_waypart(addr, coreid);
             if (lines.size() == 0) {
                 // The line of this address doesn't exist.
                 return make_pair(0, false);
@@ -480,7 +472,7 @@ namespace ramulator {
             if (higher_cache.size()) {
                 long max_delay = delay;
                 for (auto hc : higher_cache) {
-                    auto result = hc->invalidate(addr);
+                    auto result = hc->invalidate(addr, coreid);
                     if (result.second) {
                         max_delay = max(max_delay, delay + result.first * 2);
                     } else {
@@ -522,7 +514,7 @@ namespace ramulator {
             if (higher_cache.size()) {
                 long max_delay = delay;
                 for (auto hc : higher_cache) {
-                    auto result = hc->invalidate(addr);
+                    auto result = hc->invalidate(addr, coreid);
                     if (result.second) {
                         max_delay = max(max_delay, delay + result.first * 2);
                     } else {
@@ -564,7 +556,7 @@ namespace ramulator {
             if (higher_cache.size()) {
                 long max_delay = delay;
                 for (auto hc : higher_cache) {
-                    auto result = hc->invalidate(addr);
+                    auto result = hc->invalidate(addr, coreid);
                     if (result.second) {
                         max_delay = max(max_delay, delay + result.first * 2);
                     } else {
@@ -580,8 +572,8 @@ namespace ramulator {
         }
     }
 
-    void Cache::evict(std::list<Line>* lines,
-                      std::list<Line>::iterator victim) {
+    void Cache::evict(std::list<Line>* lines, std::list<Line>::iterator victim,
+                      int coreid) {
         // 18-740 QoS: Way Partitioning
         if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
             debug("level %d miss evict victim %lx", int(level), victim->addr);
@@ -594,7 +586,7 @@ namespace ramulator {
             // First invalidate the victim line in higher level.
             if (higher_cache.size()) {
                 for (auto hc : higher_cache) {
-                    auto result = hc->invalidate(addr);
+                    auto result = hc->invalidate(addr, coreid);
                     invalidate_time =
                         max(invalidate_time,
                             result.first +
@@ -609,7 +601,7 @@ namespace ramulator {
             if (!is_last_level) {
                 // not LLC eviction
                 assert(lower_cache != nullptr);
-                lower_cache->evictline(addr, dirty);
+                lower_cache->evictline(addr, dirty, coreid);
             } else {
                 // LLC eviction
                 if (dirty) {
@@ -640,7 +632,7 @@ namespace ramulator {
             // First invalidate the victim line in higher level.
             if (higher_cache.size()) {
                 for (auto hc : higher_cache) {
-                    auto result = hc->invalidate(addr);
+                    auto result = hc->invalidate(addr, coreid);
                     invalidate_time =
                         max(invalidate_time,
                             result.first +
@@ -655,7 +647,7 @@ namespace ramulator {
             if (!is_last_level) {
                 // not LLC eviction
                 assert(lower_cache != nullptr);
-                lower_cache->evictline(addr, dirty);
+                lower_cache->evictline(addr, dirty, coreid);
             } else {
                 // LLC eviction
                 if (dirty) {
@@ -686,7 +678,7 @@ namespace ramulator {
             // First invalidate the victim line in higher level.
             if (higher_cache.size()) {
                 for (auto hc : higher_cache) {
-                    auto result = hc->invalidate(addr);
+                    auto result = hc->invalidate(addr, coreid);
                     invalidate_time =
                         max(invalidate_time,
                             result.first +
@@ -701,7 +693,7 @@ namespace ramulator {
             if (!is_last_level) {
                 // not LLC eviction
                 assert(lower_cache != nullptr);
-                lower_cache->evictline(addr, dirty);
+                lower_cache->evictline(addr, dirty, coreid);
             } else {
                 // LLC eviction
                 if (dirty) {
@@ -722,8 +714,12 @@ namespace ramulator {
         }
     }
 
+    // * This function header was modified to pass down core values to other
+    //    functions.
     std::list<Cache::Line>::iterator Cache::allocate_line(
-        std::list<Line>& lines, long addr) {
+        std::list<Line>& lines, Request req) {
+        long addr = req.addr;
+
         // 18-740 QoS: Way Partitioning
         if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
             // See if an eviction is needed
@@ -748,7 +744,7 @@ namespace ramulator {
                                     // unlocked in each level
                 }
                 assert(victim != lines.end());
-                evict(&lines, victim);
+                evict(&lines, victim, req.coreid);
             }
 
             // Allocate newline, with lock bit on and dirty bit off
@@ -781,7 +777,7 @@ namespace ramulator {
                                     // unlocked in each level
                 }
                 assert(victim != lines.end());
-                evict(&lines, victim);
+                evict(&lines, victim, req.coreid);
             }
 
             // Allocate newline, with lock bit on and dirty bit off
@@ -814,7 +810,7 @@ namespace ramulator {
                                     // unlocked in each level
                 }
                 assert(victim != lines.end());
-                evict(&lines, victim);
+                evict(&lines, victim, req.coreid);
             }
 
             // Allocate newline, with lock bit on and dirty bit off
@@ -844,6 +840,11 @@ namespace ramulator {
     };
 
     bool Cache::need_eviction(const std::list<Line>& lines, long addr) {
+        // * For our configuration, due to the LRU structure of the given
+        //   code, we are cutting down the associativity PER CORE to 2, and
+        //   subsequently increasing the cache multiples of "ways" to 4.
+        //   This gives us two ways per core, and 4 cores per cache, to a
+        //   total of 8 groups.
         if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
             if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
                     return (get_tag(addr) == l.tag);
