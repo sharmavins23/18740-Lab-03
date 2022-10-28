@@ -265,6 +265,25 @@ namespace ramulator {
             [this](ReqIter req1, ReqIter req2) {
                 // 18-740: ADD CODE BELOW THIS LINE
 
+                // * BLISS SCHEDULER
+
+                // Prioritizing non-blacklisted threads
+                if (
+                    // If the first core is blacklisted, and the second is not
+                    this->ctrl->bStatus[req1->coreid] &&
+                    !this->ctrl->bStatus[req2->coreid]) {
+                    // Prioritize the second core
+                    return req2;
+                } else if (
+                    // If the second core is blacklisted, and the first is not
+                    this->ctrl->bStatus[req2->coreid] &&
+                    !this->ctrl->bStatus[req1->coreid]) {
+                    // Prioritize the first core
+                    return req1;
+                }
+
+                // * EQUITY SCHEDULER
+
                 // Get the number of requests
                 long req1Count = this->ctrl->numRequestsPerCore[req1->coreid];
                 long req2Count = this->ctrl->numRequestsPerCore[req2->coreid];
