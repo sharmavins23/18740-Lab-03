@@ -724,7 +724,7 @@ namespace ramulator {
         // 18-740 QoS: Way Partitioning
         if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
             // See if an eviction is needed
-            if (need_eviction(lines, addr)) {
+            if (need_eviction(lines, addr, req.coreid)) {
                 // Get victim.
                 // The first one might still be locked due to reorder in MC
                 auto victim =
@@ -757,7 +757,7 @@ namespace ramulator {
         // 18-740 QoS: Custom QoS
         else if (cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
             // See if an eviction is needed
-            if (need_eviction(lines, addr)) {
+            if (need_eviction(lines, addr, req.coreid)) {
                 // Get victim.
                 // The first one might still be locked due to reorder in MC
                 auto victim =
@@ -790,7 +790,7 @@ namespace ramulator {
         // 18-740 QoS: None (baseline cache)
         else {
             // See if an eviction is needed
-            if (need_eviction(lines, addr)) {
+            if (need_eviction(lines, addr, req.coreid)) {
                 // Get victim.
                 // The first one might still be locked due to reorder in MC
                 auto victim =
@@ -840,14 +840,14 @@ namespace ramulator {
         lower->higher_cache.push_back(this);
     };
 
-    bool Cache::need_eviction(const std::list<Line>& lines, long addr) {
+    bool Cache::need_eviction(const std::list<Line>& lines, long addr,
+                              int coreid) {
         // * For our configuration, due to the LRU structure of the given
         //   code, we are cutting down the associativity PER CORE to 2, and
         //   subsequently increasing the cache multiples of "ways" to 4.
         //   This gives us two ways per core, and 4 cores per cache, to a
         //   total of 8 groups.
-        if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning ||
-            cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
+        if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
             if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
                     return (get_tag(addr) == l.tag);
                 }) != lines.end()) {
@@ -856,6 +856,24 @@ namespace ramulator {
             } else {
                 // * For waypart, limiting the size to 2 as a strict count
                 if (lines.size() < 2) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        } else if (cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
+            if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
+                    return (get_tag(addr) == l.tag);
+                }) != lines.end()) {
+                // Due to MSHR, the program can't reach here. Just for checking
+                assert(false);
+            } else {
+                // Partition a particular number of ways for each core
+                int waysPerCore[4] = {1, 4, 2, 1};
+                int waysForThisCore = waysPerCore[coreid];
+
+                // * For waypart, limiting the size to 2 as a strict count
+                if (lines.size() < waysForThisCore) {
                     return false;
                 } else {
                     return true;

@@ -122,7 +122,7 @@ namespace ramulator {
 
         // Check whether the set to hold addr has space or eviction is
         // needed.
-        bool need_eviction(const std::list<Line>& lines, long addr);
+        bool need_eviction(const std::list<Line>& lines, long addr, int coreid);
 
         // Check whether this addr is hit and fill in the pos_ptr with
         // the iterator to the hit line or lines.end()
