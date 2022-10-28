@@ -45,7 +45,17 @@ namespace ramulator {
         assert((assoc & (assoc - 1)) == 0);
         assert(size >= block_size);
 
-        block_num = size / (block_size * assoc);
+        // Initialize cache configuration
+        if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
+            // * For our configuration, due to the LRU structure of the given
+            //   code, we are cutting down the associativity PER CORE to 2, and
+            //   subsequently increasing the cache multiples of "ways" to 4.
+            //   This gives us two ways per core, and 4 cores per cache, to a
+            //   total of 8 groups.
+            block_num = size / (block_size * 2);
+        } else {
+            block_num = size / (block_size * assoc);
+        }
         index_mask = block_num - 1;
         index_offset = calc_log2(block_size);
         tag_offset = calc_log2(block_num) + index_offset;
@@ -111,7 +121,7 @@ namespace ramulator {
                 cache_read_access++;
             }
             // If there isn't a set, create it.
-            auto& lines = get_lines(req.addr);
+            auto& lines = get_lines_waypart(req.addr, req.coreid);
             std::list<Line>::iterator line;
 
             if (is_hit(lines, req.addr, &line)) {
@@ -834,16 +844,32 @@ namespace ramulator {
     };
 
     bool Cache::need_eviction(const std::list<Line>& lines, long addr) {
-        if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
-                return (get_tag(addr) == l.tag);
-            }) != lines.end()) {
-            // Due to MSHR, the program can't reach here. Just for checking
-            assert(false);
-        } else {
-            if (lines.size() < assoc) {
-                return false;
+        if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
+            if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
+                    return (get_tag(addr) == l.tag);
+                }) != lines.end()) {
+                // Due to MSHR, the program can't reach here. Just for checking
+                assert(false);
             } else {
-                return true;
+                // * For waypart, limiting the size to 2 as a strict count
+                if (lines.size() < 2) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        } else {
+            if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
+                    return (get_tag(addr) == l.tag);
+                }) != lines.end()) {
+                // Due to MSHR, the program can't reach here. Just for checking
+                assert(false);
+            } else {
+                if (lines.size() < assoc) {
+                    return false;
+                } else {
+                    return true;
+                }
             }
         }
     }
