@@ -282,6 +282,19 @@ namespace ramulator {
                     return req1;
                 }
 
+                // Important: If all cores are blacklisted, then un-blacklist
+                //  all of them at once
+                if (this->ctrl->bStatus[0] && this->ctrl->bStatus[1] &&
+                    this->ctrl->bStatus[2] && this->ctrl->bStatus[3]) {
+                    // This makes BLISS more aggressive in blacklisting
+                    this->ctrl->bStatus[0] = false;
+                    this->ctrl->bStatus[1] = false;
+                    this->ctrl->bStatus[2] = false;
+                    this->ctrl->bStatus[3] = false;
+                    // Also reset this so we don't instantly blacklist a core
+                    this->ctrl->numRequests = 0;
+                }
+
                 // * EQUITY SCHEDULER
 
                 // Get the number of requests
@@ -292,6 +305,18 @@ namespace ramulator {
                 if (req1Count < req2Count) {
                     return req1;
                 } else if (req2Count < req1Count) {
+                    return req2;
+                }
+
+                // * Large core prioritization
+
+                // Prioritize the larger cores that need more memory
+                int prio1 = this->ctrl->priority[req1->coreid];
+                int prio2 = this->ctrl->priority[req2->coreid];
+
+                if (prio1 > prio2) {
+                    return req1;
+                } else if (prio2 > prio1) {
                     return req2;
                 }
 

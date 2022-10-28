@@ -209,7 +209,7 @@ namespace ramulator {
                 cache_read_access++;
             }
             // If there isn't a set, create it.
-            auto& lines = get_lines_waypart(req.addr, req.coreid);
+            auto& lines = get_lines(req.addr);
             std::list<Line>::iterator line;
 
             if (is_hit(lines, req.addr, &line)) {
@@ -411,9 +411,8 @@ namespace ramulator {
         }
         // 18-740 QoS: Custom QoS
         else if (cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
-            auto it = cache_lines_wp[coreid].find(get_index(addr));
-            assert(it !=
-                   cache_lines_wp[coreid].end());  // check inclusive cache
+            auto it = cache_lines.find(get_index(addr));
+            assert(it != cache_lines.end());  // check inclusive cache
             auto& lines = it->second;
             auto line = find_if(
                 lines.begin(), lines.end(),
@@ -492,7 +491,7 @@ namespace ramulator {
             long delay = latency_each[int(level)];
             bool dirty = false;
 
-            auto& lines = get_lines_waypart(addr, coreid);
+            auto& lines = get_lines(addr);
             if (lines.size() == 0) {
                 // The line of this address doesn't exist.
                 return make_pair(0, false);
@@ -724,7 +723,7 @@ namespace ramulator {
         // 18-740 QoS: Way Partitioning
         if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
             // See if an eviction is needed
-            if (need_eviction(lines, addr, req.coreid)) {
+            if (need_eviction(lines, addr)) {
                 // Get victim.
                 // The first one might still be locked due to reorder in MC
                 auto victim =
@@ -757,7 +756,7 @@ namespace ramulator {
         // 18-740 QoS: Custom QoS
         else if (cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
             // See if an eviction is needed
-            if (need_eviction(lines, addr, req.coreid)) {
+            if (need_eviction(lines, addr)) {
                 // Get victim.
                 // The first one might still be locked due to reorder in MC
                 auto victim =
@@ -790,7 +789,7 @@ namespace ramulator {
         // 18-740 QoS: None (baseline cache)
         else {
             // See if an eviction is needed
-            if (need_eviction(lines, addr, req.coreid)) {
+            if (need_eviction(lines, addr)) {
                 // Get victim.
                 // The first one might still be locked due to reorder in MC
                 auto victim =
@@ -840,8 +839,7 @@ namespace ramulator {
         lower->higher_cache.push_back(this);
     };
 
-    bool Cache::need_eviction(const std::list<Line>& lines, long addr,
-                              int coreid) {
+    bool Cache::need_eviction(const std::list<Line>& lines, long addr) {
         // * For our configuration, due to the LRU structure of the given
         //   code, we are cutting down the associativity PER CORE to 2, and
         //   subsequently increasing the cache multiples of "ways" to 4.
@@ -856,24 +854,6 @@ namespace ramulator {
             } else {
                 // * For waypart, limiting the size to 2 as a strict count
                 if (lines.size() < 2) {
-                    return false;
-                } else {
-                    return true;
-                }
-            }
-        } else if (cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
-            if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
-                    return (get_tag(addr) == l.tag);
-                }) != lines.end()) {
-                // Due to MSHR, the program can't reach here. Just for checking
-                assert(false);
-            } else {
-                // Partition a particular number of ways for each core
-                int waysPerCore[4] = {1, 4, 2, 1};
-                int waysForThisCore = waysPerCore[coreid];
-
-                // * For waypart, limiting the size to 2 as a strict count
-                if (lines.size() < waysForThisCore) {
                     return false;
                 } else {
                     return true;

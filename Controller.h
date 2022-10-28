@@ -75,8 +75,12 @@ namespace ramulator {
         bool bStatus[4] = {false, false, false, false};
 
         // * Equity variables
-        long numRequestsPerCore[4] = {0, 0, 0,
-                                      0};  // Number of requests per core
+        // Number of requests per core
+        long numRequestsPerCore[4] = {0, 0, 0, 0};
+
+        // * Other scheduling variables
+        // Priority settings for each core
+        int priority[4] = {1, 4, 2, 1};
 
         Scheduler<T>* scheduler;  // determines the highest priority request
                                   // whose commands will be issued
