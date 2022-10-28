@@ -8,4 +8,4 @@ make -j8
 cd ..
 
 # Waypart
-ramulator/ramulator configs/waypart.cfg --mode=cpu --stats output/waypart.stats traces/gcc.trace traces/mcf.trace traces/milc.trace traces/omnetpp.trace
+ramulator/ramulator configs/custom.cfg --mode=cpu --stats output/waypart.stats traces/gcc.trace traces/mcf.trace traces/milc.trace traces/omnetpp.trace
