@@ -209,7 +209,7 @@ namespace ramulator {
                 cache_read_access++;
             }
             // If there isn't a set, create it.
-            auto& lines = get_lines(req.addr);
+            auto& lines = get_lines_waypart(req.addr, req.coreid);
             std::list<Line>::iterator line;
 
             if (is_hit(lines, req.addr, &line)) {
@@ -411,8 +411,9 @@ namespace ramulator {
         }
         // 18-740 QoS: Custom QoS
         else if (cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
-            auto it = cache_lines.find(get_index(addr));
-            assert(it != cache_lines.end());  // check inclusive cache
+            auto it = cache_lines_wp[coreid].find(get_index(addr));
+            assert(it !=
+                   cache_lines_wp[coreid].end());  // check inclusive cache
             auto& lines = it->second;
             auto line = find_if(
                 lines.begin(), lines.end(),
@@ -491,7 +492,7 @@ namespace ramulator {
             long delay = latency_each[int(level)];
             bool dirty = false;
 
-            auto& lines = get_lines(addr);
+            auto& lines = get_lines_waypart(addr, coreid);
             if (lines.size() == 0) {
                 // The line of this address doesn't exist.
                 return make_pair(0, false);
@@ -845,7 +846,8 @@ namespace ramulator {
         //   subsequently increasing the cache multiples of "ways" to 4.
         //   This gives us two ways per core, and 4 cores per cache, to a
         //   total of 8 groups.
-        if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning) {
+        if (cachesys->cache_qos == CacheSystem::Cache_QoS::way_partitioning ||
+            cachesys->cache_qos == CacheSystem::Cache_QoS::custom) {
             if (find_if(lines.begin(), lines.end(), [addr, this](Line l) {
                     return (get_tag(addr) == l.tag);
                 }) != lines.end()) {
