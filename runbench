@@ -15,3 +15,6 @@ ramulator/ramulator configs/waypart.cfg --mode=cpu --stats output/waypart.stats 
 
 # BLISS
 ramulator/ramulator configs/bliss.cfg --mode=cpu --stats output/bliss.stats traces/gcc.trace traces/mcf.trace traces/milc.trace traces/omnetpp.trace
+
+# CUSTOM
+ramulator/ramulator configs/custom.cfg --mode=cpu --stats output/bliss.stats traces/gcc.trace traces/mcf.trace traces/milc.trace traces/omnetpp.trace

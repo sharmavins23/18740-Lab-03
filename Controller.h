@@ -68,10 +68,15 @@ namespace ramulator {
         long clk = 0;
         DRAM<T>* channel;
 
+        // * BLISS variables
         int lastCoreID = 0;    // Used to track the core ID of the last request
         long numRequests = 0;  // Number of requests served from an application
         // Used to track the blacklist status of the cores (we only have 4)
         bool bStatus[4] = {false, false, false, false};
+
+        // * Equity variables
+        long numRequestsPerCore[4] = {0, 0, 0,
+                                      0};  // Number of requests per core
 
         Scheduler<T>* scheduler;  // determines the highest priority request
                                   // whose commands will be issued
@@ -450,6 +455,11 @@ namespace ramulator {
 
                 // Update the last core ID
                 lastCoreID = coreid;
+
+                // * Counting algorithms for Equity
+
+                // Increment the number of requests for this core
+                numRequestsPerCore[coreid]++;
 
                 req->is_first_command = false;
                 // int coreid = req->coreid;

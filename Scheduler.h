@@ -264,6 +264,20 @@ namespace ramulator {
             // Custom
             [this](ReqIter req1, ReqIter req2) {
                 // 18-740: ADD CODE BELOW THIS LINE
+
+                // Get the number of requests
+                long req1Count = this->ctrl->reqCount[req1->coreid];
+                long req2Count = this->ctrl->reqCount[req2->coreid];
+
+                // Prioritize the list with the least number of requests
+                if (req1Count < req2Count) {
+                    return req1;
+                } else if (req2Count < req1Count) {
+                    return req2;
+                }
+
+                // Otherwise, handle ties with FCFS
+
                 bool ready1 =
                     this->ctrl->is_ready(req1) && this->ctrl->is_row_hit(req1);
                 bool ready2 =
