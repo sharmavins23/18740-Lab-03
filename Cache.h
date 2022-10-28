@@ -81,9 +81,6 @@ namespace ramulator {
 
         std::map<int, std::list<Line>> cache_lines;
 
-        // Four sets of cache lines for four cores (in waypart)
-        std::map<int, std::list<Line>> cache_lines_wp[4];
-
         int calc_log2(int val) {
             int n = 0;
             while ((val >>= 1)) n++;
@@ -93,13 +90,6 @@ namespace ramulator {
         int get_index(long addr) {
             return (addr >> index_offset) & index_mask;
         };
-
-        // For waypart, cut an index down to the number of ways available
-        //  By summing all the bits together, we effectively cut down the number
-        //  of lines to two - odd and even
-        int get_index_waypart(long addr) {
-            return (addr >> index_offset) & index_mask;
-        }
 
         long get_tag(long addr) { return (addr >> tag_offset); }
 
@@ -191,17 +181,6 @@ namespace ramulator {
                     make_pair(get_index(addr), std::list<Line>()));
             }
             return cache_lines[get_index(addr)];
-        }
-
-        std::list<Line>& get_lines_waypart(long addr, int coreid) {
-            // Modified, so ideally this only makes two ways per core
-            if (cache_lines_wp[coreid].find(get_index_waypart(addr)) ==
-                cache_lines_wp[coreid].end()) {
-                cache_lines_wp[coreid].insert(
-                    make_pair(get_index_waypart(addr), std::list<Line>()));
-            }
-
-            return cache_lines_wp[coreid][get_index_waypart(addr)];
         }
     };
 

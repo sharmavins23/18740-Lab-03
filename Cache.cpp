@@ -1,5 +1,7 @@
 #include "Cache.h"
 
+// #define DEBUG_CACHE
+
 #ifndef DEBUG_CACHE
 #define debug(...)
 #else
@@ -43,7 +45,6 @@ namespace ramulator {
         assert((assoc & (assoc - 1)) == 0);
         assert(size >= block_size);
 
-        // Initialize cache configuration
         block_num = size / (block_size * assoc);
         index_mask = block_num - 1;
         index_offset = calc_log2(block_size);
@@ -110,8 +111,7 @@ namespace ramulator {
                 cache_read_access++;
             }
             // If there isn't a set, create it.
-            // * Only create if the current core has space in the set
-            auto& lines = get_lines_waypart(req.addr, req.coreid);
+            auto& lines = get_lines(req.addr);
             std::list<Line>::iterator line;
 
             if (is_hit(lines, req.addr, &line)) {
